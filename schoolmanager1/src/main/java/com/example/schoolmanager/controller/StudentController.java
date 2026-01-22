@@ -3,6 +3,7 @@ package com.example.schoolmanager.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,7 +22,7 @@ import com.example.schoolmanager.model.Student;
 
 @RestController
 @RequestMapping("/api/students")
-@CrossOrigin // cho phép frontend gọi
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
 public class StudentController {
 
     @Autowired
@@ -80,12 +82,26 @@ public class StudentController {
     //6. API cập nhật sinh viên
     //   Sử dụng JSON trong body để cập nhật cho thống nhất với API thêm mới
     @PutMapping("/update/{id}")
-public ResponseEntity<Student> updateStudent(
-        @PathVariable int id,
-        @RequestBody Student updatedStudent) {
-
-    Student result = service.updateStudent(id, updatedStudent);
-    return ResponseEntity.ok(result);
+    public ResponseEntity<?> updateStudent(
+            @PathVariable int id,
+            @RequestBody Student updatedStudent) {
+        try {
+            // Validate dữ liệu đầu vào
+            if (updatedStudent.getName() == null || updatedStudent.getName().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Tên sinh viên không được để trống");
+            }
+            if (updatedStudent.getEmail() == null || updatedStudent.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Email không được để trống");
+            }
+            
+            Student result = service.updateStudent(id, updatedStudent);
+            if (result == null) {
+                return ResponseEntity.status(404).body("Sinh viên với ID " + id + " không tồn tại");
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Lỗi khi cập nhật sinh viên: " + e.getMessage());
+        }
     }
 }
-

@@ -2,162 +2,440 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Quản lý sinh viên</title>
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-</head>
-<body class="container mt-4">
-
-<h3 class="mb-3">DANH SÁCH SINH VIÊN</h3>
-
-<input type="text" id="search" class="form-control mb-3"
-       placeholder="Tìm theo tên..." onkeyup="searchStudent()">
-
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-    <tr>
-        <th>ID</th>
-        <th>Tên</th>
-        <th>Email</th>
-        <th>Hành động</th>
-    </tr>
-    </thead>
-    <tbody id="studentTable"></tbody>
-</table>
-
-<hr>
-
-<h4>Thêm sinh viên</h4>
-<input id="name" class="form-control mb-2" placeholder="Tên">
-<input id="email" class="form-control mb-2" placeholder="Email">
-
-<button class="btn btn-primary" onclick="addStudent()">Thêm</button>
-
-<script>
-const API = "http://localhost:8080/api/students";
-
-/* ================= LOAD ================= */
-function loadStudents() {
-    fetch(API)
-        .then(res => {
-            if (!res.ok) {
-                return res.text().then(t => { throw new Error(t); });
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (!Array.isArray(data)) {
-                throw new Error("Dữ liệu không hợp lệ");
-            }
-            renderTable(data);
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Không thể tải danh sách sinh viên!");
-        });
-}
-
-/* ================= RENDER ================= */
-function renderTable(data) {
-    let html = "";
-    data.forEach(s => {
-        html += `
-        <tr>
-            <td>${s.id}</td>
-            <td>${s.name}</td>
-            <td>${s.email}</td>
-            <td>
-                <button class="btn btn-danger btn-sm"
-                        onclick="deleteStudent(${s.id})">
-                    Xóa
-                </button>
-            </td>
-        </tr>`;
-    });
-    document.getElementById("studentTable").innerHTML = html;
-}
-
-/* ================= ADD ================= */
-function addStudent() {
-    const name = document.getElementById("name").value.trim();
-    const email = document.getElementById("email").value.trim();
-
-    if (!name || !email) {
-        alert("Vui lòng nhập đầy đủ Tên và Email!");
-        return;
-    }
-
-    const student = { name, email };
-
-    fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(student)
-    })
-    .then(res => {
-        if (!res.ok) {
-            return res.text().then(t => { throw new Error(t); });
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Sinh Viên</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        return res.json();
-    })
-    .then(() => {
-        document.getElementById("name").value = "";
-        document.getElementById("email").value = "";
-        loadStudents();
-    })
-    .catch(err => {
-        console.error(err);
-        alert("Thêm sinh viên thất bại!");
-    });
-}
 
-/* ================= DELETE ================= */
-function deleteStudent(id) {
-    if (!confirm("Bạn có chắc muốn xóa sinh viên này?")) return;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-    fetch(`${API}/${id}`, { method: "DELETE" })
-        .then(res => {
-            if (!res.ok) {
-                return res.text().then(t => { throw new Error(t); });
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-add {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+        }
+
+        .btn-update {
+            background: #ffc107;
+            color: black;
+        }
+
+        .btn-update:hover {
+            background: #e0a800;
+        }
+
+        .btn-reset {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #5a6268;
+        }
+
+        .search-section {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-section input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .search-section button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+        }
+
+        .search-section button:hover {
+            background: #0056b3;
+        }
+
+        .table-section {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table thead {
+            background: #667eea;
+            color: white;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .btn-edit,
+        .btn-delete {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+
+        .btn-edit {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #0056b3;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Quản Lý Sinh Viên</h1>
+
+        <div id="message" class="message"></div>
+
+        <!-- Form Thêm/Cập Nhật -->
+        <div class="form-section">
+            <h2 style="margin-bottom: 20px; color: #333;">Thêm/Cập Nhật Sinh Viên</h2>
+            <div class="form-group">
+                <div>
+                    <label for="id">ID (để trống khi thêm mới)</label>
+                    <input type="number" id="id" placeholder="ID sinh viên">
+                </div>
+                <div>
+                    <label for="name">Tên Sinh Viên</label>
+                    <input type="text" id="name" placeholder="Nhập tên sinh viên">
+                </div>
+                <div>
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="Nhập email">
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn-add" onclick="addStudent()">➕ Thêm Sinh Viên</button>
+                <button class="btn-reset" onclick="resetForm()">🔄 Xóa Form</button>
+            </div>
+        </div>
+
+        <!-- Tìm Kiếm -->
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm theo tên sinh viên...">
+            <button onclick="searchStudents()">Tìm Kiếm</button>
+            <button onclick="loadAllStudents()" style="background: #6c757d; color: white;">Xem Tất Cả</button>
+        </div>
+
+        <!-- Bảng Sinh Viên -->
+        <div class="table-section">
+            <table id="studentTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên Sinh Viên</th>
+                        <th>Email</th>
+                        <th>Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="studentBody">
+                    <tr>
+                        <td colspan="4" class="empty-state">Đang tải dữ liệu...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api/students';
+
+        // Hàm hiển thị thông báo
+        function showMessage(message, type = 'success') {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${type}`;
+            setTimeout(() => {
+                messageDiv.className = 'message';
+            }, 5000);
+        }
+
+        // Hàm tải tất cả sinh viên
+        function loadAllStudents() {
+            fetch(API_URL)
+                .then(response => response.json())
+                .then(data => {
+                    displayStudents(data);
+                })
+                .catch(error => {
+                    console.error('Lỗi:', error);
+                    showMessage('Lỗi khi tải dữ liệu sinh viên!', 'error');
+                    displayEmpty();
+                });
+        }
+
+        // Hàm hiển thị sinh viên
+        function displayStudents(students) {
+            const tbody = document.getElementById('studentBody');
+            if (students.length === 0) {
+                displayEmpty();
+                return;
             }
-            loadStudents();
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Xóa thất bại!");
+
+            tbody.innerHTML = students.map(student => `
+                <tr>
+                    <td>${student.id}</td>
+                    <td>${student.name}</td>
+                    <td>${student.email}</td>
+                    <td>
+                        <button class="btn-edit" onclick="editStudent(${student.id}, '${student.name}', '${student.email}')">✏️ Sửa</button>
+                        <button class="btn-delete" onclick="deleteStudent(${student.id})">🗑️ Xóa</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Hàm hiển thị khi không có dữ liệu
+        function displayEmpty() {
+            const tbody = document.getElementById('studentBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Không có sinh viên nào</td></tr>';
+        }
+
+        // Hàm thêm sinh viên
+        function addStudent() {
+            const id = document.getElementById('id').value;
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+
+            if (!name || !email) {
+                showMessage('Vui lòng nhập tên và email!', 'error');
+                return;
+            }
+
+            const student = { name, email };
+
+            let url, method;
+            if (id) {
+                // Cập nhật
+                method = 'PUT';
+                url = `${API_URL}/update/${id}`;
+            } else {
+                // Thêm mới
+                method = 'POST';
+                url = API_URL;
+            }
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(student)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            throw new Error(text || 'Lỗi ' + response.status);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showMessage(id ? 'Cập nhật sinh viên thành công!' : 'Thêm sinh viên thành công!');
+                    resetForm();
+                    loadAllStudents();
+                })
+                .catch(error => {
+                    console.error('Lỗi:', error);
+                    showMessage(error.message || 'Lỗi khi lưu sinh viên!', 'error');
+                });
+        }
+
+        // Hàm sửa sinh viên
+        function editStudent(id, name, email) {
+            document.getElementById('id').value = id;
+            document.getElementById('name').value = name;
+            document.getElementById('email').value = email;
+            window.scrollTo(0, 0);
+        }
+
+        // Hàm xóa sinh viên
+        function deleteStudent(id) {
+            if (confirm('Bạn chắc chắn muốn xóa sinh viên này?')) {
+                fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                })
+                    .then(() => {
+                        showMessage('Xóa sinh viên thành công!');
+                        loadAllStudents();
+                    })
+                    .catch(error => {
+                        console.error('Lỗi:', error);
+                        showMessage('Lỗi khi xóa sinh viên!', 'error');
+                    });
+            }
+        }
+
+        // Hàm tìm kiếm
+        function searchStudents() {
+            const searchTerm = document.getElementById('searchInput').value;
+            if (!searchTerm) {
+                loadAllStudents();
+                return;
+            }
+
+            fetch(`${API_URL}/search?name=${encodeURIComponent(searchTerm)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayStudents(data);
+                })
+                .catch(error => {
+                    console.error('Lỗi:', error);
+                    showMessage('Lỗi khi tìm kiếm!', 'error');
+                });
+        }
+
+        // Hàm xóa form
+        function resetForm() {
+            document.getElementById('id').value = '';
+            document.getElementById('name').value = '';
+            document.getElementById('email').value = '';
+        }
+
+        // Tải dữ liệu khi trang load
+        window.addEventListener('load', () => {
+            loadAllStudents();
         });
-}
 
-/* ================= SEARCH ================= */
-function searchStudent() {
-    const name = document.getElementById("search").value.trim();
-
-    if (name === "") {
-        loadStudents();
-        return;
-    }
-
-    fetch(`${API}/search?name=${encodeURIComponent(name)}`)
-        .then(res => {
-            if (!res.ok) {
-                return res.text().then(t => { throw new Error(t); });
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (!Array.isArray(data)) {
-                throw new Error("Dữ liệu không hợp lệ");
-            }
-            renderTable(data);
-        })
-        .catch(err => {
-            console.error(err);
+        // Enter để tìm kiếm
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchStudents();
         });
-}
-
-/* ================= INIT ================= */
-loadStudents();
-</script>
-
+    </script>
 </body>
 </html>
